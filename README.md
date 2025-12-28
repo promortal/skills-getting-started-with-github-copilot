@@ -1,5 +1,7 @@
 # Getting Started with GitHub Copilot
 
+[![Python Tests](https://github.com/promortal/skills-getting-started-with-github-copilot/actions/workflows/python-tests.yml/badge.svg)](https://github.com/promortal/skills-getting-started-with-github-copilot/actions/workflows/python-tests.yml)
+
 <img src="https://octodex.github.com/images/Professortocat_v2.png" align="right" height="200px" />
 
 Hey promortal!

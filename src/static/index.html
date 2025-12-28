@@ -46,5 +46,119 @@
     </footer>
 
     <script src="app.js"></script>
+    <script>
+      // Enhance activity cards by appending a participants section
+      document.addEventListener('DOMContentLoaded', async () => {
+        try {
+          const res = await fetch('/activities');
+          const data = await res.json();
+
+          const cards = document.querySelectorAll('#activities-list .activity-card');
+          cards.forEach(card => {
+            // Avoid duplicate sections
+            if (card.querySelector('.participants-section')) return;
+
+            const name = card.querySelector('h4')?.textContent?.trim();
+            if (!name || !data[name]) return;
+
+            const section = document.createElement('div');
+            section.className = 'participants-section';
+
+            const title = document.createElement('h5');
+            title.textContent = 'Participants';
+            section.appendChild(title);
+
+            const list = document.createElement('ul');
+            list.className = 'participants-list';
+
+            const participants = data[name].participants || [];
+            if (participants.length === 0) {
+              const li = document.createElement('li');
+              li.className = 'participant-item empty';
+              li.textContent = 'No participants yet';
+              list.appendChild(li);
+            } else {
+              participants.forEach(email => {
+                const li = document.createElement('li');
+                li.className = 'participant-item';
+                li.innerHTML = `
+                  <span class="participant-email">${email}</span>
+                  <span class="participant-actions">
+                    <button class="participant-remove" title="Unregister" aria-label="Unregister">✕</button>
+                  </span>
+                `;
+                list.appendChild(li);
+              });
+            }
+
+            section.appendChild(list);
+            card.appendChild(section);
+          });
+
+          // Populate the activity select if not already populated
+          const select = document.getElementById('activity');
+          if (select && select.options.length <= 1) {
+            Object.keys(data).forEach(activityName => {
+              const opt = document.createElement('option');
+              opt.value = activityName;
+              opt.textContent = activityName;
+              select.appendChild(opt);
+            });
+          }
+        } catch (err) {
+          console.error('Failed to load participants:', err);
+        }
+      });
+
+      // Handle unregister clicks (event delegation)
+      document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.participant-remove');
+        if (!btn) return;
+
+        const li = btn.closest('.participant-item');
+        const section = btn.closest('.participants-section');
+        const card = btn.closest('.activity-card');
+        const activityName = card?.querySelector('h4')?.textContent?.trim();
+        const email = li?.querySelector('.participant-email')?.textContent?.trim();
+
+        if (!activityName || !email) return;
+
+        try {
+          const resp = await fetch(`/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(email)}`, {
+            method: 'DELETE',
+          });
+          const result = await resp.json();
+          if (!resp.ok) {
+            console.error(result?.detail || 'Failed to unregister');
+            return;
+          }
+
+          // Remove participant from UI
+          li.remove();
+
+          // If list is now empty, add placeholder
+          const list = section.querySelector('.participants-list');
+          if (list && list.querySelectorAll('.participant-item').length === 0) {
+            const emptyLi = document.createElement('li');
+            emptyLi.className = 'participant-item empty';
+            emptyLi.textContent = 'No participants yet';
+            list.appendChild(emptyLi);
+          }
+
+          // Increment availability shown on the card
+          const availabilityP = Array.from(card.querySelectorAll('p'))
+            .find(p => p.textContent.includes('Availability:'));
+          if (availabilityP) {
+            const m = availabilityP.textContent.match(/(\d+)\s+spots/);
+            if (m) {
+              const spotsLeft = parseInt(m[1], 10) + 1;
+              availabilityP.innerHTML = `<strong>Availability:</strong> ${spotsLeft} spots left`;
+            }
+          }
+        } catch (err) {
+          console.error('Error unregistering participant:', err);
+        }
+      });
+    </script>
   </body>
 </html>
