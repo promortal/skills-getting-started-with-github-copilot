@@ -69,11 +69,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Avoid duplicate entries
     const exists = Array.from(list.querySelectorAll("li"))
-      .some(li => li.textContent.trim() === email);
+      .some(li => li.querySelector('.participant-email')?.textContent?.trim() === email);
     if (!exists) {
       const li = document.createElement("li");
       li.className = "participant-item";
-      li.textContent = email;
+      li.innerHTML = `
+        <span class="participant-email">${email}</span>
+        <span class="participant-actions">
+          <button class="participant-remove" title="Unregister" aria-label="Unregister">✕</button>
+        </span>
+      `;
       list.appendChild(li);
     }
 

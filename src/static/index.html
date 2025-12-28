@@ -81,7 +81,12 @@
               participants.forEach(email => {
                 const li = document.createElement('li');
                 li.className = 'participant-item';
-                li.textContent = email;
+                li.innerHTML = `
+                  <span class="participant-email">${email}</span>
+                  <span class="participant-actions">
+                    <button class="participant-remove" title="Unregister" aria-label="Unregister">✕</button>
+                  </span>
+                `;
                 list.appendChild(li);
               });
             }
@@ -102,6 +107,56 @@
           }
         } catch (err) {
           console.error('Failed to load participants:', err);
+        }
+      });
+
+      // Handle unregister clicks (event delegation)
+      document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.participant-remove');
+        if (!btn) return;
+
+        const li = btn.closest('.participant-item');
+        const section = btn.closest('.participants-section');
+        const card = btn.closest('.activity-card');
+        const activityName = card?.querySelector('h4')?.textContent?.trim();
+        const email = li?.querySelector('.participant-email')?.textContent?.trim();
+
+        if (!activityName || !email) return;
+
+        try {
+          const resp = await fetch(`/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(email)}`, {
+            method: 'DELETE',
+          });
+          const result = await resp.json();
+          if (!resp.ok) {
+            console.error(result?.detail || 'Failed to unregister');
+            return;
+          }
+
+          // Remove participant from UI
+          li.remove();
+
+          // If list is now empty, add placeholder
+          const list = section.querySelector('.participants-list');
+          if (list && list.querySelectorAll('.participant-item').length === 0) {
+            const emptyLi = document.createElement('li');
+            emptyLi.className = 'participant-item empty';
+            emptyLi.textContent = 'No participants yet';
+            list.appendChild(emptyLi);
+          }
+
+          // Increment availability shown on the card
+          const availabilityP = Array.from(card.querySelectorAll('p'))
+            .find(p => p.textContent.includes('Availability:'));
+          if (availabilityP) {
+            const m = availabilityP.textContent.match(/(\d+)\s+spots/);
+            if (m) {
+              const spotsLeft = parseInt(m[1], 10) + 1;
+              availabilityP.innerHTML = `<strong>Availability:</strong> ${spotsLeft} spots left`;
+            }
+          }
+        } catch (err) {
+          console.error('Error unregistering participant:', err);
         }
       });
     </script>
