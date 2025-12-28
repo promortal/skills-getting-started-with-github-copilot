@@ -41,6 +41,54 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Append/refresh participants for a specific activity card after successful signup
+  function updateParticipantsUI(activityName, email) {
+    const card = Array.from(document.querySelectorAll("#activities-list .activity-card"))
+      .find(c => c.querySelector("h4")?.textContent?.trim() === activityName);
+    if (!card) return;
+
+    // Ensure participants section exists
+    let section = card.querySelector(".participants-section");
+    if (!section) {
+      section = document.createElement("div");
+      section.className = "participants-section";
+      const title = document.createElement("h5");
+      title.textContent = "Participants";
+      const list = document.createElement("ul");
+      list.className = "participants-list";
+      section.appendChild(title);
+      section.appendChild(list);
+      card.appendChild(section);
+    }
+
+    const list = section.querySelector(".participants-list");
+
+    // Remove "No participants yet" placeholder if present
+    const emptyItem = list.querySelector(".participant-item.empty");
+    if (emptyItem) emptyItem.remove();
+
+    // Avoid duplicate entries
+    const exists = Array.from(list.querySelectorAll("li"))
+      .some(li => li.textContent.trim() === email);
+    if (!exists) {
+      const li = document.createElement("li");
+      li.className = "participant-item";
+      li.textContent = email;
+      list.appendChild(li);
+    }
+
+    // Decrement availability shown on the card
+    const availabilityP = Array.from(card.querySelectorAll("p"))
+      .find(p => p.textContent.includes("Availability:"));
+    if (availabilityP) {
+      const m = availabilityP.textContent.match(/(\d+)\s+spots/);
+      if (m) {
+        const spotsLeft = Math.max(parseInt(m[1], 10) - 1, 0);
+        availabilityP.innerHTML = `<strong>Availability:</strong> ${spotsLeft} spots left`;
+      }
+    }
+  }
+
   // Handle form submission
   signupForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -61,6 +109,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (response.ok) {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
+
+        // Update participants list asynchronously for the selected activity
+        updateParticipantsUI(activity, email);
+
         signupForm.reset();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
