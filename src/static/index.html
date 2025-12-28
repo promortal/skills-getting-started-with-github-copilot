@@ -46,5 +46,64 @@
     </footer>
 
     <script src="app.js"></script>
+    <script>
+      // Enhance activity cards by appending a participants section
+      document.addEventListener('DOMContentLoaded', async () => {
+        try {
+          const res = await fetch('/activities');
+          const data = await res.json();
+
+          const cards = document.querySelectorAll('#activities-list .activity-card');
+          cards.forEach(card => {
+            // Avoid duplicate sections
+            if (card.querySelector('.participants-section')) return;
+
+            const name = card.querySelector('h4')?.textContent?.trim();
+            if (!name || !data[name]) return;
+
+            const section = document.createElement('div');
+            section.className = 'participants-section';
+
+            const title = document.createElement('h5');
+            title.textContent = 'Participants';
+            section.appendChild(title);
+
+            const list = document.createElement('ul');
+            list.className = 'participants-list';
+
+            const participants = data[name].participants || [];
+            if (participants.length === 0) {
+              const li = document.createElement('li');
+              li.className = 'participant-item empty';
+              li.textContent = 'No participants yet';
+              list.appendChild(li);
+            } else {
+              participants.forEach(email => {
+                const li = document.createElement('li');
+                li.className = 'participant-item';
+                li.textContent = email;
+                list.appendChild(li);
+              });
+            }
+
+            section.appendChild(list);
+            card.appendChild(section);
+          });
+
+          // Populate the activity select if not already populated
+          const select = document.getElementById('activity');
+          if (select && select.options.length <= 1) {
+            Object.keys(data).forEach(activityName => {
+              const opt = document.createElement('option');
+              opt.value = activityName;
+              opt.textContent = activityName;
+              select.appendChild(opt);
+            });
+          }
+        } catch (err) {
+          console.error('Failed to load participants:', err);
+        }
+      });
+    </script>
   </body>
 </html>
